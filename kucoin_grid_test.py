@@ -1,6 +1,3 @@
-# not currently finished
-
-
 import json
 import requests
 import time
@@ -41,10 +38,11 @@ def call_code(data_json=None, order_id=None):
 	if data_json == None:
 		now = int(time.time() * 1000)
 		#str_to_sign = str(now) + 'GET' + '/api/v1/orders?status=active'
-		#str_to_sign = str(now) + 'GET' + '/api/v1/orders/' + order_id
-		str_to_sign = str(now) + 'GET' + '/api/v1/accounts'
+		#str_to_sign = str(now) + 'GET' + '/api/v1/orders/' + order_id  #
+		#str_to_sign = str(now) + 'GET' + '/api/v1/accounts'
 		#str_to_sign = str(now) + 'GET' + '/api/v1/market/allTickers'
 		#str_to_sign = str(now) + 'GET' + '/api/v1/symbols'
+		str_to_sign = str(now) + 'GET' + '/api/v1/limit/orders'
 	else:
 		now = int(time.time() * 1000)
 		str_to_sign = str(now) + 'POST' + '/api/v1/orders' + data_json
@@ -108,26 +106,40 @@ def place_order(price, position_size, side):
 	print(response.json())
 	return response.json()
 
-
-place_order(0.85, 10, "BUY")
-
-# can delete
-
-# def place_order(price, position_size, side):
-#     string = f"market={config.trading_pair}&side={side}&price={price}&amount={position_size}&nonce={get_timestamp()}"
-#     sign = hashing(string)
-#     params = f"market={config.trading_pair}&side={side}&price={price}&amount={position_size}&nonce={get_timestamp()}&signature={sign}"
-#     url = "https://stakecube.io/api/v2/exchange/spot/order"
-#     response = requests.post(url, headers = headers, data = params)
-#     print(response.json())
-#     return response.json()
+# test order
+# place_order(0.85, 10, "BUY")
 
 
-
+# must know id before use
+def get_order_info(order_id):
+	url = 'https://api.kucoin.com/api/v1/orders/' + order_id
+	# str_to_sign = str(now) + 'GET' + '/api/v1/orders/62c19f43fc3df20001f6214c'
+	data_json = None
+	HEADERS = call_code(data_json, order_id)
+	response = requests.get(url, headers = HEADERS)
+	print(response.status_code)
+	print(response.json())
+	return response.json()
 
 
 
-# working on this tomorrow
+# closed or canceled trades - use 'id'
+# works
+def get_list():
+	url = 'https://api.kucoin.com/api/v1/limit/orders'
+	data_json = None
+	HEADERS = call_code(data_json)
+	response = requests.get(url, headers = HEADERS)
+	print(response.status_code)
+	print(response.json())
+
+
+get_list()
+
+
+
+
+# not sure if needed
 
 # def get_symbols(): 
 # 	now = int(time.time() * 1000)
@@ -146,6 +158,7 @@ place_order(0.85, 10, "BUY")
 
 
 
+
 # not completed
 
 
@@ -159,10 +172,10 @@ def test_grid():
 
 	for i in range(config.number_sell_gridlines):
 		price = current_price + (config.grid_size * (i+1))
-		price = round(price, 8)
+		price = round(price, 8)   
 		time.sleep(1)
 		order = place_order(price, config.position_size, side = "SELL")
-		sell_orders.append(order['result'])
+		sell_orders.append(order['data'])
 
 
  	# buy grid
@@ -173,107 +186,97 @@ def test_grid():
 
 		time.sleep(1)
 		order = place_order(price, config.position_size, side = "BUY")
-		buy_orders.append(order['result'])
+		buy_orders.append(order['data'])
 
 	return sell_orders, buy_orders
 
 
-# sell_orders, buy_orders = test_grid()  
-# closed_orders = []
 
+#sell_orders, buy_orders = test_grid()  
+closed_order_ids = []
 
-# # all prints in this loop for testing, will give more meaningful info later / take out random prints
+# print(buy_orders)
+
 
 # while True:
 
-#     time.sleep(7)
-#     try:
-#         closed_trades = my_trades()
-#     except Exception as e:
-#         print("check closed trades failed")
-#     else:
-#         print("*****************************************")
-        	
-#     closed_ids = []
-
-#     for closed_trade in closed_trades['result']:
-#         closed_ids.append(closed_trade['orderId'])
+# 	time.sleep(5)
+# 	try:
+# 		closed_trades = get_list()
+# 	except Exception as e:
+# 		print("check closed trades failed")
+# 	else:
+# 		print("************************************")
 
 
-#     for sell_order in sell_orders:
-#         for i in range(len(closed_trades['result'])):
-#             try:                                                                                            # might take out try since the error with the bellow if statement has been corrected
-#                 if sell_order['orderId'] == closed_trades['result'][i]['orderId']:               
-#                     print("****************************** sell_order loop ***************************")
-#                     print("trade is closed")
-#                     print("old sell_orders")
-#                     print(sell_orders)
-#                     print(sell_order['price'])
-#                     print(f"sell_order orderId = {sell_order['orderId']}")
-#                     new_buy_price = float(sell_order['price']) - config.grid_size
-#                     print(f"**************test************ {new_buy_price}")
-#                     time.sleep(1)
-#                     new_buy_order = place_order(new_buy_price, config.position_size, side = "BUY")
+# 	for closed_trade in closed_trades['data']
+
+# # # all prints in this loop for testing, will give more meaningful info later / take out random prints
+
+# while True:
+# 	#print("checking orders")
+
+# 	# put in a try, except - or at least see about being timed out
+
+# 	for sell_order in sell_orders:
+# 		print("checking sells")
+# 		try:
+# 			order = get_order_info(sell_order['orderId'])
+		
+
+# 			order_info = order['data']
+# 			#print(order_info)
+
+# 			print(f"buy list - {buy_orders}")
+# 			print(f"sell list - {sell_orders}")
+# 		except Exception as e:
+# 			print("error in #1")
+# 			continue
+
+# 		if order_info['isActive'] == config.closed_order_status:  # need a variable or can just do False?
+# 			closed_order_ids.append(order_info['id'])
+			
+# 			print(f"Closed Orders - {closed_order_ids}")
+
+# 			new_buy_price = float(order_info['price']) - config.grid_size
+# 			new_buy_order = place_order(new_buy_price, config.position_size, "BUY")
+# 			buy_orders.append(new_buy_order['data'])
+
+			
+
+# # need to make sure this append works - print out buy_ourders again with new append
 
 
+# 		time.sleep(config.check_orders_frequency) # do we really need this variable and not just a normal #
 
-#                     while new_buy_order['success'] == False:                     # 2 errors fixed here ( currently testing ) - invalid signature parameter, pending process need to finish
-#                         print("************** BUY ERROR*************")           # this will give an infiniate loop if not enough balance, will add if statement 
-#                         time.sleep(1)                        
-#                         new_buy_order = place_order(new_buy_price, config.position_size, side = "BUY")
+# 	for buy_order in buy_orders:
+# 		try:
+# 			order = get_order_info(buy_order['orderId'])
+# 		 	# print(order)
 
+# 			order_info = order['data']
+# 		except Exception as e:
+# 			print("error in #2")
+# 			continue
 
+# 		if order_info['isActive'] == config.closed_order_status:  # need a variable or can just do False?
+# 			closed_order_ids.append(order_info['id'])
 
+# 			print(f"Closed Orders - {closed_order_ids}")
 
-#                     buy_orders.append(new_buy_order['result'])
-#                     print(f"buy_orders - {buy_orders}")
-                    
-#                     break
-#             except Exception as e:
-#                 print("/////////////////////// if error //////////////")
-#                 continue	
+# 			new_sell_price = float(order_info['price']) + config.grid_size
+# 			new_sell_order = place_order(new_sell_price, config.position_size, "SELL")
+# 			sell_orders.append(new_sell_order['data'])
 
+# 		time.sleep(config.check_orders_frequency) # do we really need this variable and not just a normal #
 
-
-
-#     for buy_order in buy_orders:
-#         for i in range(len(closed_trades['result'])):
-#             if buy_order['orderId'] == closed_trades['result'][i]['orderId']:
-#                 print("**********************************************  buy_order loop ****************************")
-#                 print("trade is closed")
-#                 print("old buy_orders")
-#                 print(buy_orders)
-#                 print(buy_order['price'])
-#                 print(f"buy_order orderId = {buy_order['orderId']}")
-#                 new_sell_price = float(buy_order['price']) + config.grid_size
-#                 print(f"********test********** {new_sell_price}")
-#                 time.sleep(1)
-#                 new_sell_order = place_order(new_sell_price, config.position_size, side = "SELL")
-
-
-
-
-
-#                 while new_sell_order['success'] == False:
-#                     print("**************pending process need to finish ERROR*************")     # 2 errors fixed here ( currently testing ) - invalid signature parameter, pending process need to finish
-#                     time.sleep(1)                                                                # this will give an infiniate loop if not enough balance, will add if statement
-#                     new_sell_order = place_order(new_sell_price, config.position_size, side = "SELL")
-
-
-
-#                 sell_orders.append(new_sell_order['result'])
-#                 print(f"sell_orders - {sell_orders}")
-                
-#                 break
-
-
-#     for order_id in closed_ids:  # need try here?
-#         buy_orders = [buy_order for buy_order in buy_orders if buy_order['orderId'] != order_id]
-
-#         sell_orders = [sell_order for sell_order in sell_orders if sell_order['orderId'] != order_id]
-
-#     print(f"pausing {config.trading_pair}")
-#     time.sleep(12)
+	
+# 	for order_id in closed_order_ids:
+# 		buy_orders = [buy_order for buy_order in buy_orders if buy_order['orderId'] != order_id]
+# 		print(f" Buy list - {buy_orders}")
+		
+# 		sell_orders = [sell_order for sell_order in sell_orders if sell_order['orderId'] != order_id]
+# 		print(f" Sell list - {sell_orders}")
 
 
 
