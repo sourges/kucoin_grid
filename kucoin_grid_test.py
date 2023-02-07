@@ -1,3 +1,6 @@
+# not currently finished
+
+
 import json
 import requests
 import time
