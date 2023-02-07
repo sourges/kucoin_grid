@@ -31,6 +31,37 @@ headers = {
 
 
 
+
+
+# needs major clean up
+def call_code(data_json=None, order_id=None):
+	if data_json == None:
+		now = int(time.time() * 1000)
+		#str_to_sign = str(now) + 'GET' + '/api/v1/orders?status=active'
+		#str_to_sign = str(now) + 'GET' + '/api/v1/orders/' + order_id
+		str_to_sign = str(now) + 'GET' + '/api/v1/accounts'
+		#str_to_sign = str(now) + 'GET' + '/api/v1/market/allTickers'
+		#str_to_sign = str(now) + 'GET' + '/api/v1/symbols'
+	else:
+		now = int(time.time() * 1000)
+		str_to_sign = str(now) + 'POST' + '/api/v1/orders' + data_json
+		
+		print(str_to_sign)
+
+	signature = base64.b64encode(
+		hmac.new(config.api_secret.encode('utf-8'), str_to_sign.encode('utf-8'), hashlib.sha256).digest())
+	passphrase = base64.b64encode(hmac.new(config.api_secret.encode('utf-8'), config.api_passphrase.encode('utf-8'), hashlib.sha256).digest())
+	HEADERS = {
+		"KC-API-KEY": config.api_key,
+		"KC-API-SIGN": signature,
+		"KC-API-TIMESTAMP": str(now),
+		"KC-API-PASSPHRASE": passphrase,
+		"KC-API-KEY-VERSION": "2",
+		"Content-Type": "application/json"
+	}
+	return HEADERS
+
+
 # gets single ticker info - must know which ticker request
 # currently works
 
@@ -53,7 +84,61 @@ def get_single_ticker():
 	return average
 
 
-get_single_ticker()
+
+def place_order(price, position_size, side):
+	# is position_size needed for an arguement if its coming from config
+
+	url = 'https://api.kucoin.com/api/v1/orders'
+	now = int(time.time() * 1000)
+	data = {
+		"clientOid":now,
+		"side":side,
+		"symbol":config.symbol,
+		"type":"LIMIT",
+		"price": round(price, 4),
+		"size":config.position_size  # since moved to config, does place_order function need position_size anymore
+	}
+	data_json = json.dumps(data)
+	HEADERS = call_code(data_json)
+	response = requests.post(url, headers = HEADERS, data = data_json)
+	print(response.status_code)
+	print(response.json())
+	return response.json()
+
+
+place_order(0.85, 10, "BUY")
+
+# can delete
+
+# def place_order(price, position_size, side):
+#     string = f"market={config.trading_pair}&side={side}&price={price}&amount={position_size}&nonce={get_timestamp()}"
+#     sign = hashing(string)
+#     params = f"market={config.trading_pair}&side={side}&price={price}&amount={position_size}&nonce={get_timestamp()}&signature={sign}"
+#     url = "https://stakecube.io/api/v2/exchange/spot/order"
+#     response = requests.post(url, headers = headers, data = params)
+#     print(response.json())
+#     return response.json()
+
+
+
+
+
+
+# working on this tomorrow
+
+# def get_symbols(): 
+# 	now = int(time.time() * 1000)
+# 	str_to_sign = str(now) + 'GET' + '/api/v1/symbols/'
+# 	url = f'https://api.kucoin.com/api/v1/symbols/{config.symbol}'
+# 	HEADERS = call_code(str_to_sign)
+# 	response = requests.get(url, headers = HEADERS)
+# 	baseIncrement = len(response.json()['data']['baseIncrement'].split('.')[1])
+# 	quoteIncrement = len(response.json()['data']['quoteIncrement'].split('.')[1])
+# 	priceIncrement = len(response.json()['data']['priceIncrement'].split('.')[1])
+# 	return baseIncrement, quoteIncrement, priceIncrement
+
+# base, quote, priced = get_symbols()
+# print(base, quote, priced)
 
 
 
@@ -61,33 +146,33 @@ get_single_ticker()
 # not completed
 
 
-# def test_grid():
+def test_grid():
 
-# 	current_price = get_single_ticker()  # to get the median price
-# 	buy_orders = []
-# 	sell_orders = []
+	current_price = get_single_ticker()  # to get the median price
+	buy_orders = []
+	sell_orders = []
 
-# 	# sell grid
+	# sell grid
 
-# 	for i in range(config.number_sell_gridlines):
-# 		price = current_price + (config.grid_size * (i+1))
-# 		price = round(price, 8)
-# 		time.sleep(1)
-# 		order = place_order(price, config.position_size, side = "SELL")
-# 		sell_orders.append(order['result'])
+	for i in range(config.number_sell_gridlines):
+		price = current_price + (config.grid_size * (i+1))
+		price = round(price, 8)
+		time.sleep(1)
+		order = place_order(price, config.position_size, side = "SELL")
+		sell_orders.append(order['result'])
 
 
-#  	# buy grid
+ 	# buy grid
 
-# 	for i in range(config.number_buy_gridlines):
-# 		price = current_price - (config.grid_size * (i+1))
-# 		price = round(price, 8)
+	for i in range(config.number_buy_gridlines):
+		price = current_price - (config.grid_size * (i+1))
+		price = round(price, 8)
 
-# 		time.sleep(1)
-# 		order = place_order(price, config.position_size, side = "BUY")
-# 		buy_orders.append(order['result'])
+		time.sleep(1)
+		order = place_order(price, config.position_size, side = "BUY")
+		buy_orders.append(order['result'])
 
-# 	return sell_orders, buy_orders
+	return sell_orders, buy_orders
 
 
 # sell_orders, buy_orders = test_grid()  
