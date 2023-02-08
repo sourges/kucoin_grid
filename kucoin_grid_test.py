@@ -7,7 +7,7 @@ import hmac
 import base64
 
 
-
+# clean this up
 
 url = 'https://api.kucoin.com/api/v1/accounts'
 now = int(time.time() * 1000)
@@ -34,6 +34,7 @@ headers = {
 
 
 # needs major clean up
+
 def call_code(data_json=None, order_id=None):
 	if data_json == None:
 		now = int(time.time() * 1000)
@@ -66,7 +67,6 @@ def call_code(data_json=None, order_id=None):
 # currently works
 
 def get_single_ticker():
-	#must create a variable for symbol
 	orderbook = requests.get(f'https://api.kucoin.com/api/v1/market/orderbook/level2_20?symbol={config.trading_pair}')
 	print(orderbook.status_code)
 	print(f"{config.trading_pair} Asks - " + orderbook.json()['data']['asks'][0][0])
@@ -86,8 +86,6 @@ def get_single_ticker():
 
 
 def place_order(price, position_size, side):
-	# is position_size needed for an arguement if its coming from config
-
 	url = 'https://api.kucoin.com/api/v1/orders'
 	now = int(time.time() * 1000)
 	data = {
@@ -95,8 +93,8 @@ def place_order(price, position_size, side):
 		"side":side,
 		"symbol":config.trading_pair,
 		"type":"LIMIT",
-		"price": round(price, 4),
-		"size":config.position_size  # since moved to config, does place_order function need position_size anymore
+		"price": round(price, 4),   # will change later - eth / btc size for example
+		"size":config.position_size  
 	}
 	data_json = json.dumps(data)
 	HEADERS = call_code(data_json)
@@ -107,19 +105,6 @@ def place_order(price, position_size, side):
 
 # test order
 # place_order(0.85, 10, "BUY")
-
-
-# must know id before use
-def get_order_info(order_id):
-	url = 'https://api.kucoin.com/api/v1/orders/' + order_id
-	# str_to_sign = str(now) + 'GET' + '/api/v1/orders/62c19f43fc3df20001f6214c'
-	data_json = None
-	HEADERS = call_code(data_json, order_id)
-	response = requests.get(url, headers = HEADERS)
-	print(response.status_code)
-	print(response.json())
-	return response.json()
-
 
 
 
@@ -154,8 +139,7 @@ def get_closed_trades():
 
 
 
-
-# not sure if needed
+# use later for price + size 
 
 # def get_symbols(): 
 # 	now = int(time.time() * 1000)
@@ -170,12 +154,6 @@ def get_closed_trades():
 
 # base, quote, priced = get_symbols()
 # print(base, quote, priced)
-
-
-
-
-
-# not completed
 
 
 def test_grid():
@@ -216,7 +194,7 @@ closed_order_ids = []
 
 while True:
 
-	time.sleep(5)
+	time.sleep(15)
 	try:
 		closed_trades = get_closed_trades()
 	except Exception as e:
@@ -303,10 +281,10 @@ while True:
 				continue
 
 
-	for order_id in closed_ids:  # need try here?
+	for order_id in closed_ids: 
 		buy_orders = [buy_order for buy_order in buy_orders if buy_order['orderId'] != order_id]
 
 		sell_orders = [sell_order for sell_order in sell_orders if sell_order['orderId'] != order_id]
 
 	print(f"pausing {config.trading_pair}")
-	time.sleep(12)
+	time.sleep(15)
