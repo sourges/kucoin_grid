@@ -67,10 +67,10 @@ def call_code(data_json=None, order_id=None):
 
 def get_single_ticker():
 	#must create a variable for symbol
-	orderbook = requests.get(f'https://api.kucoin.com/api/v1/market/orderbook/level2_20?symbol={config.symbol}')
+	orderbook = requests.get(f'https://api.kucoin.com/api/v1/market/orderbook/level2_20?symbol={config.trading_pair}')
 	print(orderbook.status_code)
-	print(f"{config.symbol} Asks - " + orderbook.json()['data']['asks'][0][0])
-	print(f"{config.symbol} Bids - " + orderbook.json()['data']['bids'][0][0])
+	print(f"{config.trading_pair} Asks - " + orderbook.json()['data']['asks'][0][0])
+	print(f"{config.trading_pair} Bids - " + orderbook.json()['data']['bids'][0][0])
 	
 
 	best_ask = orderbook.json()['data']['asks'][0][0]
@@ -93,7 +93,7 @@ def place_order(price, position_size, side):
 	data = {
 		"clientOid":now,
 		"side":side,
-		"symbol":config.symbol,
+		"symbol":config.trading_pair,
 		"type":"LIMIT",
 		"price": round(price, 4),
 		"size":config.position_size  # since moved to config, does place_order function need position_size anymore
@@ -160,7 +160,7 @@ def get_closed_trades():
 # def get_symbols(): 
 # 	now = int(time.time() * 1000)
 # 	str_to_sign = str(now) + 'GET' + '/api/v1/symbols/'
-# 	url = f'https://api.kucoin.com/api/v1/symbols/{config.symbol}'
+# 	url = f'https://api.kucoin.com/api/v1/symbols/{config.trading_pair}'
 # 	HEADERS = call_code(str_to_sign)
 # 	response = requests.get(url, headers = HEADERS)
 # 	baseIncrement = len(response.json()['data']['baseIncrement'].split('.')[1])
@@ -269,16 +269,18 @@ while True:
 
 
 	for sell_order in sell_orders:
-		for i in range(len(closed_trades['result'])):
+		for i in range(len(closed_trades['data'])):
 			try:                                                                                            # might take out try since the error with the bellow if statement has been corrected
-				if sell_order['orderId'] == closed_trades['result'][i]['orderId']:               
+				if sell_order['orderId'] == closed_trades['data'][i]['id']:               
 					print("****************************** sell_order loop ***************************")
 					print("trade is closed")
 					print("old sell_orders")
 					print(sell_orders)
 					print(sell_order['price'])
 					print(f"sell_order orderId = {sell_order['orderId']}")
-					new_buy_price = float(sell_order['price']) - config.grid_size
+
+					new_buy_price = float(closed_trades['data'][i]['price']) - config.grid_size
+
 					print(f"**************test************ {new_buy_price}")
 					time.sleep(1)
 					new_buy_order = place_order(new_buy_price, config.position_size, side = "BUY")
@@ -293,7 +295,7 @@ while True:
 
 
 
-					buy_orders.append(new_buy_order['result'])
+					buy_orders.append(new_buy_order['data'])
 					print(f"buy_orders - {buy_orders}") 
 					break
 			except Exception as e:
@@ -302,12 +304,12 @@ while True:
 
 
 	for order_id in closed_ids:  # need try here?
-        buy_orders = [buy_order for buy_order in buy_orders if buy_order['orderId'] != order_id]
+		buy_orders = [buy_order for buy_order in buy_orders if buy_order['orderId'] != order_id]
 
-        sell_orders = [sell_order for sell_order in sell_orders if sell_order['orderId'] != order_id]
+		sell_orders = [sell_order for sell_order in sell_orders if sell_order['orderId'] != order_id]
 
-    print(f"pausing {config.trading_pair}")
-    time.sleep(12)
+	print(f"pausing {config.trading_pair}")
+	time.sleep(12)
 
 
 
