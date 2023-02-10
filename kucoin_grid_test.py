@@ -254,7 +254,7 @@ while True:
 					print("trade is closed")
 					print("old sell_orders")
 					print(sell_orders)
-					print(sell_order['price'])
+					#print(sell_order['price'])  
 					print(f"sell_order orderId = {sell_order['orderId']}")
 
 					new_buy_price = float(closed_trades['data'][i]['price']) - config.grid_size
