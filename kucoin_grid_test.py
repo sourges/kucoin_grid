@@ -111,10 +111,38 @@ def place_order(price, position_size, side):
 # closed or canceled trades - use 'id'
 # works
 
+# def get_closed_trades():
+# 	url = 'https://api.kucoin.com/api/v1/limit/orders'
+# 	now = int(time.time() * 1000)
+# 	str_to_sign = str(now) + 'GET' + '/api/v1/limit/orders'
+# 	signature = base64.b64encode(
+# 		hmac.new(config.api_secret.encode('utf-8'), str_to_sign.encode('utf-8'), hashlib.sha256).digest())
+# 	passphrase = base64.b64encode(hmac.new(config.api_secret.encode('utf-8'), config.api_passphrase.encode('utf-8'), hashlib.sha256).digest())
+# 	HEADERS = {
+# 		"KC-API-KEY": config.api_key,
+# 		"KC-API-SIGN": signature,
+# 		"KC-API-TIMESTAMP": str(now),
+# 		"KC-API-PASSPHRASE": passphrase,
+# 		"KC-API-KEY-VERSION": "2",
+# 		"Content-Type": "application/json"
+# 	}
+
+# 	response = requests.get(url, headers = HEADERS)
+
+# 	# #test prints
+# 	# print(response.status_code)
+# 	# print(response.json())
+
+# 	return response.json()
+
+# get_closed_trades()
+
+
+
 def get_closed_trades():
-	url = 'https://api.kucoin.com/api/v1/limit/orders'
+	url = f'https://api.kucoin.com/api/v1/orders?status=done&symbol={config.trading_pair}&currentPage=1&pageSize=500'
 	now = int(time.time() * 1000)
-	str_to_sign = str(now) + 'GET' + '/api/v1/limit/orders'
+	str_to_sign = str(now) + 'GET' + f'/api/v1/orders?status=done&symbol={config.trading_pair}&currentPage=1&pageSize=500'
 	signature = base64.b64encode(
 		hmac.new(config.api_secret.encode('utf-8'), str_to_sign.encode('utf-8'), hashlib.sha256).digest())
 	passphrase = base64.b64encode(hmac.new(config.api_secret.encode('utf-8'), config.api_passphrase.encode('utf-8'), hashlib.sha256).digest())
@@ -129,15 +157,13 @@ def get_closed_trades():
 
 	response = requests.get(url, headers = HEADERS)
 
-	# test prints
+	#test prints
 	# print(response.status_code)
 	# print(response.json())
 
 	return response.json()
 
 # get_closed_trades()
-
-
 
 # use later for price + size 
 
@@ -167,7 +193,7 @@ def test_grid():
 	for i in range(config.number_sell_gridlines):
 		price = current_price + (config.grid_size * (i+1))
 		price = round(price, 8)   
-		time.sleep(1)
+		time.sleep(2)
 		order = place_order(price, config.position_size, side = "SELL")
 		sell_orders.append(order['data'])
 
@@ -178,7 +204,7 @@ def test_grid():
 		price = current_price - (config.grid_size * (i+1))
 		price = round(price, 8)
 
-		time.sleep(1)
+		time.sleep(2)
 		order = place_order(price, config.position_size, side = "BUY")
 		buy_orders.append(order['data'])
 
@@ -197,6 +223,7 @@ while True:
 	time.sleep(15)
 	try:
 		closed_trades = get_closed_trades()
+		time.sleep(2)
 	except Exception as e:
 		print("check closed trades failed")
 	else:
@@ -204,14 +231,14 @@ while True:
 
 	closed_ids = []
 
-	for closed_trade in closed_trades['data']:
+	for closed_trade in closed_trades['data']['items']:
 		closed_ids.append(closed_trade['id'])
 
 
 	for buy_order in buy_orders:
-		for i in range(len(closed_trades['data'])):
+		for i in range(len(closed_trades['data']['items'])):
 			try:
-				if buy_order['orderId'] == closed_trades['data'][i]['id']:
+				if buy_order['orderId'] == closed_trades['data']['items'][i]['id']:
 					print("**********************************************  buy_order loop ****************************")
 					print("trade is closed")
 					print("old buy_orders")
@@ -219,7 +246,7 @@ while True:
 					# print(buy_order['price'])
 					print(f"buy_order orderId = {buy_order['orderId']}")
 
-					new_sell_price = float(closed_trades['data'][i]['price']) + config.grid_size
+					new_sell_price = float(closed_trades['data']['items'][i]['price']) + config.grid_size
 
 					#new_sell_price = float(buy_order['price']) + config.grid_size
 					print(f"********test********** {new_sell_price}")
@@ -247,9 +274,9 @@ while True:
 
 
 	for sell_order in sell_orders:
-		for i in range(len(closed_trades['data'])):
+		for i in range(len(closed_trades['data']['items'])):
 			try:                                                                                            # might take out try since the error with the bellow if statement has been corrected
-				if sell_order['orderId'] == closed_trades['data'][i]['id']:               
+				if sell_order['orderId'] == closed_trades['data']['items'][i]['id']:               
 					print("****************************** sell_order loop ***************************")
 					print("trade is closed")
 					print("old sell_orders")
@@ -257,7 +284,7 @@ while True:
 					#print(sell_order['price'])  
 					print(f"sell_order orderId = {sell_order['orderId']}")
 
-					new_buy_price = float(closed_trades['data'][i]['price']) - config.grid_size
+					new_buy_price = float(closed_trades['data']['items'][i]['price']) - config.grid_size
 
 					print(f"**************test************ {new_buy_price}")
 					time.sleep(1)
